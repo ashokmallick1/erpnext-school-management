@@ -1,0 +1,74 @@
+# AI Module Configuration
+# ERPNext School — AI-Ready Architecture
+# Phase 7: Optional AI Features
+#
+# This file documents the AI integration points.
+# Activate by setting AI_ENABLED=true in .env
+
+[ai]
+enabled = false
+provider = openai
+model = gpt-4o
+api_key_env = OPENAI_API_KEY
+max_tokens = 2000
+temperature = 0.7
+
+[ai.school_assistant]
+# School-wide AI assistant capabilities
+enabled = true
+capabilities = [
+    "attendance_query",
+    "fee_query",
+    "exam_query",
+    "student_search",
+    "policy_lookup",
+    "schedule_query"
+]
+# System prompt for school assistant
+system_prompt = """
+You are the AI assistant for a K-12 school management system.
+You help staff, parents, and students with:
+- Attendance records and reports
+- Fee status and payment information
+- Exam schedules and results
+- Student information queries
+- School policies and procedures
+- Timetable information
+
+You have read-only access to school data through the ERPNext API.
+Always be helpful, accurate, and maintain student privacy.
+Never share sensitive information with unauthorized users.
+"""
+
+[ai.teacher_assistant]
+# AI tools for teachers
+enabled = true
+capabilities = [
+    "lesson_plan_generation",
+    "report_card_comments",
+    "assignment_generation",
+    "question_paper_generation",
+    "rubric_creation",
+    "parent_email_drafting"
+]
+system_prompt = """
+You are an AI teaching assistant helping teachers in a K-12 school.
+You assist with:
+- Creating lesson plans aligned with curriculum standards
+- Writing constructive report card comments
+- Generating assignment and project ideas
+- Creating question papers and quizzes
+- Developing grading rubrics
+- Drafting parent communication emails
+
+Be educational, encouraging, and age-appropriate.
+Align all content with standard curriculum requirements.
+"""
+
+[ai.api_endpoints]
+# REST API endpoints for AI features
+school_assistant = /api/method/school.ai.assistant.query
+teacher_assistant = /api/method/school.ai.teacher.generate
+lesson_plan = /api/method/school.ai.teacher.lesson_plan
+report_comments = /api/method/school.ai.teacher.report_comments
+question_paper = /api/method/school.ai.teacher.question_paper

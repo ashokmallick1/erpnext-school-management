@@ -1,0 +1,67 @@
+##############################################################
+# Cloudflare Tunnel Configuration File
+# For use with cloudflared CLI (alternative to token method)
+#
+# Usage:
+#   OPTION A (Recommended): Use tunnel token in docker-compose.yml
+#     TUNNEL_TOKEN=<your-token>  ← Set in .env
+#
+#   OPTION B: Use this config file
+#     Mount this file in cloudflared container:
+#     volumes:
+#       - ./config/cloudflare/config.yml:/etc/cloudflared/config.yml:ro
+#       - ./config/cloudflare/credentials.json:/etc/cloudflared/credentials.json:ro
+#     command: tunnel run erpnext-school
+#
+# Generate tunnel UUID:
+#   cloudflared tunnel create erpnext-school
+#   → Creates credentials file at ~/.cloudflared/<UUID>.json
+#   → Note the tunnel ID (UUID)
+##############################################################
+
+tunnel: <YOUR-TUNNEL-UUID-HERE>
+credentials-file: /etc/cloudflared/credentials.json
+
+# ─── Ingress rules ────────────────────────────────────────
+ingress:
+  # Main school ERP
+  - hostname: erp.school.example.com
+    service: http://frontend:8080
+    originRequest:
+      # Pass original host header to ERPNext
+      httpHostHeader: erp.school.example.com
+      # Timeouts for long operations (reports, large uploads)
+      connectTimeout: 30s
+      tlsTimeout: 30s
+      tcpKeepAlive: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 100
+      # Allow large file uploads (student photos, documents)
+      noTLSVerify: false
+
+  # Parent portal (optional separate subdomain)
+  # - hostname: parents.school.example.com
+  #   service: http://frontend:8080
+  #   originRequest:
+  #     httpHostHeader: erp.school.example.com
+
+  # API subdomain (for mobile apps)
+  # - hostname: api.school.example.com
+  #   service: http://frontend:8080
+  #   originRequest:
+  #     httpHostHeader: erp.school.example.com
+
+  # Catch-all (required, returns 404)
+  - service: http_status:404
+
+# ─── Cloudflare settings ──────────────────────────────────
+# These are configured in Cloudflare Dashboard under:
+# Zero Trust → Networks → Tunnels → your-tunnel → Configure
+
+# Logging
+loglevel: info
+logfile: /tmp/cloudflared.log
+
+# Protocol
+# QUIC is faster but falls back to HTTP/2 if QUIC is blocked
+protocol: auto

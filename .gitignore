@@ -1,0 +1,54 @@
+##############################################################
+# .gitignore for ERPNext School Management System
+##############################################################
+
+# ─── Environment (NEVER commit these!) ───────────────────
+.env
+.env.local
+.env.production
+*.env
+
+# ─── Data directories (persistent volumes) ───────────────
+data/
+
+# ─── Backup files ────────────────────────────────────────
+*.sql.gz
+*.sql.gz.enc
+*.tar.gz
+*.tar.gz.enc
+
+# ─── Docker ───────────────────────────────────────────────
+*.log
+docker-compose.override.yml
+
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.Python
+venv/
+.venv/
+
+# ─── Node ────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ─── IDE files ───────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# ─── Secrets and credentials ─────────────────────────────
+*.pem
+*.key
+credentials.json
+*.secret
+
+# ─── Temporary files ──────────────────────────────────────
+*.tmp
+*.bak
+*.backup

@@ -1,0 +1,374 @@
+##############################################################
+# ERPNext School Management System
+# docker-compose.yml — Production Configuration
+# ERPNext v15.109.3 | Frappe v15.111.1 | Validated June 2026
+#
+# PREREQUISITE:
+#   1. Build custom image first: bash scripts/build.sh
+#   2. Create data directories: bash scripts/init-dirs.sh
+#   3. Configure .env file
+#
+# USAGE:
+#   docker compose --env-file .env up -d
+#   docker compose --env-file .env logs -f
+##############################################################
+
+# ─── Shared image definition ──────────────────────────────
+x-customimage: &customimage
+  image: ${CUSTOM_IMAGE:-school-erpnext}:${CUSTOM_TAG:-v15.109.3}
+  pull_policy: missing
+  restart: unless-stopped
+
+# ─── Shared backend defaults ──────────────────────────────
+x-backend-defaults: &backend_defaults
+  <<: *customimage
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+    - assets:/home/frappe/frappe-bench/assets
+    - apps:/home/frappe/frappe-bench/apps
+
+# ─── Shared environment ───────────────────────────────────
+x-frappe-environment: &frappe-environment
+  DB_HOST: ${DB_HOST:-db}
+  DB_PORT: "${DB_PORT:-3306}"
+  REDIS_CACHE: redis-cache:6379
+  REDIS_QUEUE: redis-queue:6379
+  REDIS_SOCKETIO: redis-socketio:6379
+  SOCKETIO_PORT: "9000"
+
+##############################################################
+services:
+
+  # ═══════════════════════════════════════════════════════════
+  # CONFIGURATOR — One-shot: writes common_site_config.json
+  # Exits after completion — other services wait for it
+  # ═══════════════════════════════════════════════════════════
+  configurator:
+    <<: *backend_defaults
+    restart: "no"
+    entrypoint:
+      - bash
+      - -c
+    command:
+      - >
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host $$DB_HOST;
+        bench set-config -gp db_port $$DB_PORT;
+        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
+        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
+        bench set-config -g redis_socketio "redis://$$REDIS_SOCKETIO";
+        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+    environment:
+      <<: *frappe-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+      redis-socketio:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════
+  # BACKEND — Frappe/ERPNext gunicorn WSGI server
+  # ═══════════════════════════════════════════════════════════
+  backend:
+    <<: *backend_defaults
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    command:
+      - /home/frappe/frappe-bench/env/bin/gunicorn
+      - --chdir=/home/frappe/frappe-bench/sites
+      - --bind=0.0.0.0:8000
+      - --workers=4
+      - --worker-class=gthread
+      - --threads=4
+      - --timeout=120
+      - --keep-alive=5
+      - --max-requests=2000
+      - --max-requests-jitter=200
+      - --log-level=warning
+      - --error-logfile=-
+      - --access-logfile=-
+      - frappe.app:application
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8000/api/method/ping || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
+
+  # ═══════════════════════════════════════════════════════════
+  # FRONTEND — Nginx reverse proxy + static assets
+  # ═══════════════════════════════════════════════════════════
+  frontend:
+    image: frappe/erpnext:v15.111.0
+    command: nginx-entrypoint.sh
+    environment:
+      BACKEND: backend:8000
+      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$$host}
+      SOCKETIO: websocket:9000
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: "${PROXY_TIMEOUT:-120}"
+      CLIENT_MAX_BODY_SIZE: "${CLIENT_MAX_BODY_SIZE:-50m}"
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+      - assets:/home/frappe/frappe-bench/assets
+      - apps:/home/frappe/frappe-bench/apps
+    # ONLY exposed locally — Cloudflare Tunnel connects internally
+    # Remove "127.0.0.1:" prefix if you need LAN access
+    ports:
+      - "127.0.0.1:${NGINX_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ═══════════════════════════════════════════════════════════
+  # WEBSOCKET — Node.js Socket.IO real-time server
+  # ═══════════════════════════════════════════════════════════
+  websocket:
+    <<: *backend_defaults
+    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════
+  # QUEUE WORKERS — RQ (Redis Queue) background workers
+  # ═══════════════════════════════════════════════════════════
+  queue-short:
+    <<: *backend_defaults
+    command: bench worker --queue short,default
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  queue-long:
+    <<: *backend_defaults
+    command: bench worker --queue long,default,short
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════
+  # SCHEDULER — Frappe background scheduler (cron-like)
+  # Triggers hourly, daily, weekly Frappe hooks
+  # ═══════════════════════════════════════════════════════════
+  scheduler:
+    <<: *backend_defaults
+    command: bench schedule
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════
+  # MARIADB — Primary relational database
+  # Version 10.6 — REQUIRED by ERPNext v15
+  # ═══════════════════════════════════════════════════════════
+  db:
+    image: ${MARIADB_IMAGE:-mariadb}:${MARIADB_TAG:-10.6}
+    pull_policy: missing
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+      - --max_allowed_packet=512M
+      - --innodb_buffer_pool_size=2G
+      - --innodb_log_file_size=256M
+      - --innodb_flush_log_at_trx_commit=2
+      - --innodb_file_per_table=1
+      - --query_cache_size=0
+      - --query_cache_type=0
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_USER: ${MARIADB_USER:-frappe}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-_frappe_main}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - mariadb-logs:/var/log/mysql
+      - ./config/mariadb/my.cnf:/etc/mysql/conf.d/frappe.cnf:ro
+      - ./config/mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+
+  # ═══════════════════════════════════════════════════════════
+  # REDIS — Three instances for different workloads
+  # ═══════════════════════════════════════════════════════════
+  redis-cache:
+    image: ${REDIS_IMAGE:-redis}:${REDIS_TAG:-7.2-alpine}
+    pull_policy: missing
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --loglevel warning
+    volumes:
+      - redis-cache-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis-queue:
+    image: ${REDIS_IMAGE:-redis}:${REDIS_TAG:-7.2-alpine}
+    pull_policy: missing
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 1gb
+      --maxmemory-policy noeviction
+      --appendonly yes
+      --appendfilename queue.aof
+      --loglevel warning
+    volumes:
+      - redis-queue-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis-socketio:
+    image: ${REDIS_IMAGE:-redis}:${REDIS_TAG:-7.2-alpine}
+    pull_policy: missing
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --loglevel warning
+    volumes:
+      - redis-socketio-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ═══════════════════════════════════════════════════════════
+  # CLOUDFLARE TUNNEL
+  # Zero-trust HTTPS access — no port forwarding needed!
+  # Setup: https://one.dash.cloudflare.com/
+  #        Zero Trust → Networks → Tunnels → Create Tunnel
+  # Service URL: http://frontend:8080
+  # ═══════════════════════════════════════════════════════════
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    pull_policy: always
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════
+  # BACKUP — Automated encrypted daily backup service
+  # ═══════════════════════════════════════════════════════════
+  backup:
+    <<: *backend_defaults
+    entrypoint: ["/bin/bash"]
+    command: ["/scripts/backup-cron.sh"]
+    environment:
+      <<: *frappe-environment
+      SITE_NAME: ${SITE_NAME:-school.localhost}
+      BACKUP_RETENTION_DAYS: "${BACKUP_RETENTION_DAYS:-30}"
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      S3_BACKUP_ENABLED: "${S3_BACKUP_ENABLED:-false}"
+      S3_BUCKET_NAME: "${S3_BUCKET_NAME:-}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:-}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:-}"
+      S3_ENDPOINT_URL: "${S3_ENDPOINT_URL:-}"
+      S3_REGION: "${S3_REGION:-}"
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - backups:/backups
+      - ./scripts/backup-cron.sh:/scripts/backup-cron.sh:ro
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+##############################################################
+# VOLUMES — All persistent data
+##############################################################
+volumes:
+  # CRITICAL: Contains site configs, database credentials,
+  # uploaded files, public & private files
+  sites:
+
+  # Application + worker logs
+  logs:
+
+  # PRIMARY DATABASE — back this up!
+  mariadb-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/mariadb
+
+  # MariaDB slow query log (ephemeral)
+  mariadb-logs:
+    driver: local
+
+  # Redis queue — persistent (AOF enabled)
+  redis-queue-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis-queue
+
+  # Redis cache — ephemeral (rebuilds from DB)
+  redis-cache-data:
+    driver: local
+
+  # Redis socketio — ephemeral
+  redis-socketio-data:
+    driver: local
+
+  # Backup archives
+  backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/backups
+  
+  # Static assets
+  assets:
+
+  # Frappe apps (shared for compiled CSS/JS)
+  apps:
