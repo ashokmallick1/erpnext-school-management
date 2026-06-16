@@ -257,4 +257,5 @@ app_logo_url = "/assets/quorvia_erp/images/quorvia_logo.svg"
 
 app_include_css = "/assets/quorvia_erp/css/quorvia_erp.css"
 web_include_css = "/assets/quorvia_erp/css/quorvia_erp.css"
+web_include_js = "/assets/quorvia_erp/js/apps_subtitle.js"
 
