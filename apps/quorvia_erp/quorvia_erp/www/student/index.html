@@ -1,0 +1,534 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Student Hub - Quorvia{% endblock %}
+
+{% block style %}
+<style>
+    :root {
+        --q-primary: #3182CE;
+        --q-primary-light: #63B3ED;
+        --q-secondary: #F6E05E;
+        --q-bg: #F7FAFC;
+        --q-surface: #FFFFFF;
+        --q-text-dark: #2D3748;
+        --q-text-muted: #718096;
+        --q-danger: #E53E3E;
+        --q-success: #38A169;
+        --q-radius: 16px;
+        --q-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    body {
+        background-color: var(--q-bg);
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    .portal-header {
+        background: linear-gradient(135deg, var(--q-primary) 0%, #2B6CB0 100%);
+        color: white;
+        padding: 3rem 0;
+        border-radius: 0 0 var(--q-radius) var(--q-radius);
+        margin-top: -60px; /* Offset standard frappe header padding */
+        margin-bottom: 2rem;
+        box-shadow: var(--q-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .student-avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid rgba(255,255,255,0.2);
+        background-color: var(--q-primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: white;
+        object-fit: cover;
+    }
+
+    .welcome-text h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+        color: white;
+    }
+
+    .welcome-text p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .portal-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem 2rem;
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .grid-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        background: var(--q-surface);
+        border-radius: var(--q-radius);
+        padding: 2rem;
+        box-shadow: var(--q-shadow);
+        margin-bottom: 2rem;
+    }
+
+    .card h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+        color: var(--q-text-dark);
+        border-bottom: 1px solid #EDF2F7;
+        padding-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .course-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .course-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .course-img {
+        height: 120px;
+        background-color: var(--q-primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .course-content {
+        padding: 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .course-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+        color: var(--q-text-dark);
+    }
+
+    .course-content p {
+        color: var(--q-text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        flex: 1;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 8px;
+        background: #EDF2F7;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--q-success);
+    }
+
+    .btn-lms {
+        display: inline-block;
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--q-primary);
+        color: white;
+        text-align: center;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .btn-lms:hover {
+        background: #2B6CB0;
+        color: white;
+        text-decoration: none;
+    }
+
+    .list-group {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #EDF2F7;
+    }
+
+    .list-item:last-child {
+        border-bottom: none;
+    }
+
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .badge-present { background: #C6F6D5; color: #22543D; }
+    .badge-absent { background: #FED7D7; color: #822727; }
+    
+    .stat-box {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    .stat-box .number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--q-primary);
+        line-height: 1;
+    }
+    .stat-box .label {
+        color: var(--q-text-muted);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+        display: block;
+    }
+
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+{% if error_msg %}
+<div style="text-align: center; padding: 4rem;">
+    <h2 style="color: var(--q-danger);">{{ error_msg }}</h2>
+</div>
+{% else %}
+
+<div class="portal-header">
+    <div class="header-content">
+        {% if student.image %}
+            <img src="{{ student.image }}" class="student-avatar-lg" alt="{{ student.first_name }}">
+        {% else %}
+            <div class="student-avatar-lg">{{ student.first_name[0] }}</div>
+        {% endif %}
+        <div class="welcome-text">
+            <h1>Hello, {{ student.first_name }}!</h1>
+            <p>Welcome to your Quorvia Student Hub</p>
+        </div>
+    </div>
+</div>
+
+<div class="portal-container">
+    <div class="grid-layout">
+        
+        <!-- Left Column: Courses -->
+        <div class="main-content">
+            <div class="card">
+                <h2>
+                    My Learning (LMS)
+                    <a href="/lms" style="font-size: 0.9rem; color: var(--q-primary); text-decoration: none;">Go to LMS &rarr;</a>
+                </h2>
+                
+                {% if courses %}
+                <div class="course-list">
+                    {% for c in courses %}
+                    <div class="course-card">
+                        {% if c.image %}
+                            <div class="course-img" style="background-image: url('{{ c.image }}');"></div>
+                        {% else %}
+                            <div class="course-img">{{ c.course_title[0] }}</div>
+                        {% endif %}
+                        <div class="course-content">
+                            <h3>{{ c.course_title }}</h3>
+                            <p>{{ c.short_introduction or 'Continue learning where you left off.' }}</p>
+                            
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: {{ c.progress or 0 }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.8rem; color: var(--q-text-muted); display: block; margin-bottom: 1rem;">{{ c.progress or 0 }}% Completed</span>
+                            
+                            <a href="/lms/course/{{ c.course }}" class="btn-lms">Resume Course</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 2rem 0;">
+                    <p style="color: var(--q-text-muted); margin-bottom: 1rem;">You are not currently enrolled in any LMS courses.</p>
+                    <a href="/lms/courses" class="btn-lms" style="width: auto; padding: 0.75rem 2rem;">Browse Courses</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card">
+                <h2>Recent Assessments</h2>
+                {% if results %}
+                <ul class="list-group">
+                    {% for r in results %}
+                    <li class="list-item">
+                        <div>
+                            <strong style="display: block; color: var(--q-text-dark);">{{ r.assessment_plan }}</strong>
+                            <span style="font-size: 0.85rem; color: var(--q-text-muted);">{{ r.course }}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <strong style="display: block;">{{ r.total_score }} / {{ r.maximum_score }}</strong>
+                            <span class="badge" style="background: #EBF4FF; color: #2B6CB0;">Grade: {{ r.grade }}</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: var(--q-text-muted);">No recent assessment results found.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Right Column: Stats -->
+        <div class="sidebar">
+            <div class="card">
+                <h2>Attendance</h2>
+                <div class="stat-box">
+                    <span class="number">{{ "{:.0f}".format(attendance_percent) }}%</span>
+                    <span class="label">Overall Attendance</span>
+                </div>
+                
+                <h3 style="font-size: 1rem; color: var(--q-text-dark); margin-bottom: 1rem;">Recent Days</h3>
+                {% if attendance %}
+                <ul class="list-group">
+                    {% for a in attendance %}
+                    <li class="list-item" style="padding: 0.75rem 0;">
+                        <span>{{ frappe.utils.formatdate(a.date) }}</span>
+                        {% if a.status == 'Present' %}
+                            <span class="badge badge-present">Present</span>
+                        {% else %}
+                            <span class="badge badge-absent">{{ a.status }}</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: var(--q-text-muted); font-size: 0.9rem;">No attendance records found.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- AI CHAT WIDGET -->
+<style>
+    .chat-widget {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 9999;
+    }
+    .chat-toggle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--q-primary);
+        color: white;
+        border: none;
+        box-shadow: 0 10px 25px rgba(49, 130, 206, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+    }
+    .chat-toggle:hover {
+        transform: scale(1.05);
+    }
+    .chat-toggle svg {
+        width: 30px;
+        height: 30px;
+    }
+    .chat-window {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 350px;
+        height: 500px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #EDF2F7;
+    }
+    .chat-header {
+        background: var(--q-primary);
+        color: white;
+        padding: 1rem;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chat-body {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: #F7FAFC;
+    }
+    .chat-msg {
+        max-width: 80%;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    .chat-msg.user {
+        background: var(--q-primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+    }
+    .chat-msg.ai {
+        background: white;
+        color: var(--q-text-dark);
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .chat-footer {
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #EDF2F7;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .chat-input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        outline: none;
+    }
+    .chat-send {
+        background: var(--q-primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0 1rem;
+        cursor: pointer;
+        font-weight: bold;
+    }
+</style>
+
+<div class="chat-widget">
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <span>Quorvia AI Assistant ✨</span>
+            <span style="cursor:pointer;" onclick="toggleChat()">&times;</span>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg ai">Hi {{ student.first_name }}! I'm your AI assistant. How can I help you today?</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type your question..." onkeypress="if(event.key === 'Enter') sendMsg()">
+            <button class="chat-send" onclick="sendMsg()">Send</button>
+        </div>
+    </div>
+    
+    <button class="chat-toggle" onclick="toggleChat()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+    </button>
+</div>
+
+<script>
+    function toggleChat() {
+        const w = document.getElementById('chatWindow');
+        w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+    }
+    
+    function sendMsg() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if(!text) return;
+        
+        // Append user msg
+        const body = document.getElementById('chatBody');
+        body.innerHTML += `<div class="chat-msg user">${text}</div>`;
+        input.value = '';
+        body.scrollTop = body.scrollHeight;
+        
+        // Add loading indicator
+        const loadingId = 'load-' + Date.now();
+        body.innerHTML += `<div class="chat-msg ai" id="${loadingId}">Thinking...</div>`;
+        body.scrollTop = body.scrollHeight;
+        
+        // Ping Frappe backend
+        frappe.call({
+            method: 'quorvia_erp.api.chat',
+            args: { message: text },
+            callback: function(r) {
+                document.getElementById(loadingId).remove();
+                if(r.message && r.message.reply) {
+                    body.innerHTML += `<div class="chat-msg ai">${r.message.reply}</div>`;
+                } else {
+                    body.innerHTML += `<div class="chat-msg ai" style="color:red;">Error connecting to AI backend.</div>`;
+                }
+                body.scrollTop = body.scrollHeight;
+            }
+        });
+    }
+</script>
+<!-- END AI CHAT WIDGET -->
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+FROM school-erpnext:v15.109.3
+USER root
+COPY apps/quorvia_erp /home/frappe/frappe-bench/apps/quorvia_erp
+RUN chown -R frappe:frappe /home/frappe/frappe-bench/apps/quorvia_erp
+USER frappe
+RUN /home/frappe/frappe-bench/env/bin/pip install -e /home/frappe/frappe-bench/apps/quorvia_erp

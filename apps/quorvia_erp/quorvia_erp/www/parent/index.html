@@ -1,0 +1,269 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Parent Portal - Quorvia{% endblock %}
+
+{% block style %}
+<style>
+    :root {
+        --q-primary: #6B46C1;
+        --q-primary-light: #9F7AEA;
+        --q-secondary: #F6E05E;
+        --q-bg: #F7FAFC;
+        --q-surface: #FFFFFF;
+        --q-text-dark: #2D3748;
+        --q-text-muted: #718096;
+        --q-danger: #E53E3E;
+        --q-success: #38A169;
+        --q-radius: 16px;
+        --q-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    body {
+        background-color: var(--q-bg);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .portal-header {
+        background: linear-gradient(135deg, var(--q-primary) 0%, var(--q-primary-light) 100%);
+        color: white;
+        padding: 3rem 0;
+        border-radius: 0 0 var(--q-radius) var(--q-radius);
+        margin-top: -60px; /* Offset standard frappe header padding */
+        margin-bottom: 2rem;
+        box-shadow: var(--q-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .portal-header::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none"/></svg>') repeat;
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .welcome-text h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.02em;
+        color: white;
+    }
+
+    .welcome-text p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .portal-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem 2rem;
+    }
+
+    .student-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .student-card {
+        background: var(--q-surface);
+        border-radius: var(--q-radius);
+        padding: 2rem;
+        box-shadow: var(--q-shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .student-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .student-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #EDF2F7;
+    }
+
+    .student-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: var(--q-primary-light);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-right: 1rem;
+        object-fit: cover;
+    }
+
+    .student-info h3 {
+        margin: 0 0 0.25rem 0;
+        color: var(--q-text-dark);
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .student-info p {
+        margin: 0;
+        color: var(--q-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+        background: var(--q-bg);
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .stat-box .label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--q-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-box .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--q-primary);
+    }
+
+    .stat-box .value.danger {
+        color: var(--q-danger);
+    }
+
+    .action-btn {
+        display: block;
+        width: 100%;
+        padding: 0.875rem;
+        background: var(--q-primary);
+        color: white;
+        text-align: center;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .action-btn:hover {
+        background: var(--q-primary-light);
+        color: white;
+        text-decoration: none;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: var(--q-radius);
+        box-shadow: var(--q-shadow);
+    }
+
+    .alert-error {
+        background: #FED7D7;
+        color: #9B2C2C;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+<div class="portal-header">
+    <div class="header-content">
+        <div class="welcome-text">
+            <h1>Parent Portal</h1>
+            <p>Welcome back, {{ guardian.guardian_name if guardian else user }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="portal-container">
+    {% if error_msg %}
+    <div class="alert-error">
+        <strong>Error:</strong> {{ error_msg }}
+    </div>
+    {% else %}
+    
+    {% if students %}
+    <h2 style="font-weight: 700; color: var(--q-text-dark); margin-bottom: 1rem;">Your Children</h2>
+    
+    <div class="student-grid">
+        {% for student in students %}
+        <div class="student-card">
+            <div class="student-header">
+                {% if student.image %}
+                    <img src="{{ student.image }}" alt="{{ student.first_name }}" class="student-avatar">
+                {% else %}
+                    <div class="student-avatar">{{ student.first_name[0] }}</div>
+                {% endif %}
+                <div class="student-info">
+                    <h3>{{ student.first_name }} {{ student.last_name or '' }}</h3>
+                    <p>{{ student.student_email_id or 'No Email' }}</p>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="label">Attendance</span>
+                    <span class="value">{{ student.attendance_count }} <span style="font-size: 0.9rem; color: var(--q-text-muted);">Days</span></span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Outstanding Fees</span>
+                    <span class="value {% if student.total_outstanding > 0 %}danger{% endif %}">
+                        {{ frappe.db.get_default("currency") }} {{ "{:,.2f}".format(student.total_outstanding) }}
+                    </span>
+                </div>
+            </div>
+            
+            <a href="/parent/student?name={{ student.name }}" class="action-btn">View Detailed Profile</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg style="width: 64px; height: 64px; color: var(--q-text-muted); margin-bottom: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <h3>No Students Linked</h3>
+        <p style="color: var(--q-text-muted);">There are no students currently linked to your guardian account. Please contact the administration.</p>
+    </div>
+    {% endif %}
+    
+    {% endif %}
+</div>
+
+{% endblock %}

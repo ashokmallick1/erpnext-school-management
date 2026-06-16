@@ -1,0 +1,286 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ student.first_name }} - Parent Portal{% endblock %}
+
+{% block style %}
+<style>
+    :root {
+        --q-primary: #6B46C1;
+        --q-primary-light: #9F7AEA;
+        --q-bg: #F7FAFC;
+        --q-surface: #FFFFFF;
+        --q-text-dark: #2D3748;
+        --q-text-muted: #718096;
+        --q-danger: #E53E3E;
+        --q-success: #38A169;
+        --q-radius: 16px;
+        --q-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+        background-color: var(--q-bg);
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    .back-nav {
+        max-width: 1200px;
+        margin: 2rem auto 1rem auto;
+        padding: 0 2rem;
+    }
+
+    .back-nav a {
+        color: var(--q-primary);
+        text-decoration: none;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .profile-header {
+        max-width: 1200px;
+        margin: 0 auto 2rem auto;
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: var(--q-primary-light);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        box-shadow: var(--q-shadow);
+        object-fit: cover;
+    }
+
+    .profile-title h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        color: var(--q-text-dark);
+    }
+    
+    .profile-title p {
+        margin: 0;
+        color: var(--q-text-muted);
+    }
+
+    .content-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem 2rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .card {
+        background: var(--q-surface);
+        border-radius: var(--q-radius);
+        padding: 2rem;
+        box-shadow: var(--q-shadow);
+    }
+
+    .card h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+        color: var(--q-text-dark);
+        border-bottom: 1px solid #EDF2F7;
+        padding-bottom: 1rem;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th, .data-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #EDF2F7;
+    }
+
+    .data-table th {
+        color: var(--q-text-muted);
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .badge-success { background: #C6F6D5; color: #22543D; }
+    .badge-danger { background: #FED7D7; color: #822727; }
+    .badge-warning { background: #FEEBC8; color: #7B341E; }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-box {
+        background: var(--q-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .summary-box .value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--q-primary);
+        display: block;
+    }
+    
+    .summary-box .label {
+        font-size: 0.9rem;
+        color: var(--q-text-muted);
+        text-transform: uppercase;
+    }
+
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+{% if error_msg %}
+<div class="content-container">
+    <div class="card" style="text-align: center;">
+        <h2 style="color: var(--q-danger);">{{ error_msg }}</h2>
+        <a href="/parent" style="color: var(--q-primary);">Return to Dashboard</a>
+    </div>
+</div>
+{% else %}
+
+<div class="back-nav">
+    <a href="/parent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="profile-header">
+    {% if student.image %}
+        <img src="{{ student.image }}" class="profile-avatar" alt="{{ student.first_name }}">
+    {% else %}
+        <div class="profile-avatar">{{ student.first_name[0] }}</div>
+    {% endif %}
+    <div class="profile-title">
+        <h1>{{ student.first_name }} {{ student.last_name or '' }}</h1>
+        <p>{{ student.student_email_id or 'No email on file' }} &bull; ID: {{ student.name }}</p>
+    </div>
+</div>
+
+<div class="content-container">
+    <!-- Academic Summary -->
+    <div class="card">
+        <h2>Overview</h2>
+        <div class="summary-grid">
+            <div class="summary-box">
+                <span class="value">{{ "{:.0f}".format(attendance_percent) }}%</span>
+                <span class="label">Attendance (Last 30 Days)</span>
+            </div>
+            <div class="summary-box">
+                <span class="value">{{ results|length }}</span>
+                <span class="label">Assessments Completed</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academics -->
+    <div class="card">
+        <h2>Recent Assessments</h2>
+        {% if results %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Assessment</th>
+                        <th>Course</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    <tr>
+                        <td><strong>{{ r.assessment_plan }}</strong></td>
+                        <td>{{ r.course }}</td>
+                        <td>{{ r.total_score }} / {{ r.maximum_score }}</td>
+                        <td><span class="badge badge-success">{{ r.grade }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--q-text-muted);">No assessment results available.</p>
+        {% endif %}
+    </div>
+
+    <!-- Fees -->
+    <div class="card">
+        <h2>Fee Status</h2>
+        {% if fees %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Date</th>
+                        <th>Due Date</th>
+                        <th>Total</th>
+                        <th>Outstanding</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in fees %}
+                    <tr>
+                        <td><strong>{{ f.name }}</strong></td>
+                        <td>{{ frappe.utils.formatdate(f.posting_date) }}</td>
+                        <td>{{ frappe.utils.formatdate(f.due_date) }}</td>
+                        <td>{{ frappe.db.get_default("currency") }} {{ "{:,.2f}".format(f.grand_total) }}</td>
+                        <td style="color: {% if f.outstanding_amount > 0 %}var(--q-danger){% else %}var(--q-success){% endif %}; font-weight: bold;">
+                            {{ frappe.db.get_default("currency") }} {{ "{:,.2f}".format(f.outstanding_amount) }}
+                        </td>
+                        <td>
+                            {% if f.status == "Paid" %}
+                                <span class="badge badge-success">Paid</span>
+                            {% elif f.status == "Unpaid" %}
+                                <span class="badge badge-danger">Unpaid</span>
+                            {% elif f.status == "Overdue" %}
+                                <span class="badge badge-danger">Overdue</span>
+                            {% else %}
+                                <span class="badge badge-warning">{{ f.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--q-text-muted);">No fee records found.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Teacher Portal - Quorvia{% endblock %}
+
+{% block style %}
+<style>
+    :root {
+        --q-primary: #DD6B20;
+        --q-primary-light: #F6AD55;
+        --q-bg: #F7FAFC;
+        --q-surface: #FFFFFF;
+        --q-text-dark: #2D3748;
+        --q-text-muted: #718096;
+        --q-danger: #E53E3E;
+        --q-success: #38A169;
+        --q-radius: 16px;
+        --q-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+        background-color: var(--q-bg);
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    .portal-header {
+        background: linear-gradient(135deg, var(--q-primary) 0%, #C05621 100%);
+        color: white;
+        padding: 3rem 0;
+        border-radius: 0 0 var(--q-radius) var(--q-radius);
+        margin-top: -60px; 
+        margin-bottom: 2rem;
+        box-shadow: var(--q-shadow);
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .instructor-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid rgba(255,255,255,0.2);
+        background-color: var(--q-primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: white;
+        object-fit: cover;
+    }
+
+    .welcome-text h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+        color: white;
+    }
+
+    .portal-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem 2rem;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .portal-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .card {
+        background: var(--q-surface);
+        border-radius: var(--q-radius);
+        padding: 2rem;
+        box-shadow: var(--q-shadow);
+        margin-bottom: 2rem;
+    }
+
+    .card h2 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.25rem;
+        color: var(--q-text-dark);
+        border-bottom: 1px solid #EDF2F7;
+        padding-bottom: 1rem;
+    }
+
+    .schedule-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .schedule-item {
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .schedule-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+
+    .schedule-time {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--q-primary);
+        min-width: 150px;
+    }
+
+    .schedule-details h3 {
+        margin: 0 0 0.25rem 0;
+        color: var(--q-text-dark);
+    }
+    
+    .schedule-details p {
+        margin: 0;
+        color: var(--q-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: opacity 0.2s;
+    }
+    
+    .btn:hover { opacity: 0.9; text-decoration: none; }
+    
+    .btn-outline {
+        border: 2px solid var(--q-primary);
+        color: var(--q-primary);
+    }
+    
+    .btn-primary {
+        background: var(--q-primary);
+        color: white;
+    }
+
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .quick-actions a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: var(--q-bg);
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--q-text-dark);
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    
+    .quick-actions a:hover {
+        background: #EDF2F7;
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+{% if error_msg %}
+<div style="text-align: center; padding: 4rem;">
+    <h2 style="color: var(--q-danger);">{{ error_msg }}</h2>
+</div>
+{% else %}
+
+<div class="portal-header">
+    <div class="header-content">
+        {% if instructor.image %}
+            <img src="{{ instructor.image }}" class="instructor-avatar" alt="{{ instructor.instructor_name }}">
+        {% else %}
+            <div class="instructor-avatar">{{ instructor.instructor_name[0] }}</div>
+        {% endif %}
+        <div class="welcome-text">
+            <h1>Welcome, {{ instructor.instructor_name }}</h1>
+            <p>Teacher Portal</p>
+        </div>
+    </div>
+</div>
+
+<div class="portal-container">
+    
+    <!-- Left Column: Schedule -->
+    <div class="main-content">
+        <div class="card">
+            <h2>Today's Schedule</h2>
+            {% if schedule %}
+            <div class="schedule-list">
+                {% for s in schedule %}
+                <div class="schedule-item">
+                    <div class="schedule-time">
+                        {{ s.from_time[:5] }} - {{ s.to_time[:5] }}
+                    </div>
+                    <div class="schedule-details" style="flex: 1;">
+                        <h3>{{ s.course }}</h3>
+                        <p>Group: <strong>{{ s.student_group }}</strong> &bull; Room: {{ s.room or 'TBD' }}</p>
+                    </div>
+                    <div>
+                        <!-- Links back into ERPNext Desk for marking attendance for this schedule -->
+                        <a href="/app/student-attendance-tool?student_group={{ s.student_group }}&date={{ frappe.utils.today() }}" class="btn btn-outline" target="_blank">Mark Attendance</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem;">
+                <p style="color: var(--q-text-muted);">You have no classes scheduled for today.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Column: Actions & Groups -->
+    <div class="sidebar">
+        <div class="card">
+            <h2>Quick Actions</h2>
+            <div class="quick-actions">
+                <a href="/app/assessment-result/new" target="_blank">
+                    Enter Grades
+                    <span>&rarr;</span>
+                </a>
+                <a href="/lms" target="_blank">
+                    Manage Course Materials
+                    <span>&rarr;</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>My Student Groups</h2>
+            {% if student_groups %}
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for group in student_groups %}
+                <li style="padding: 0.75rem 0; border-bottom: 1px solid #EDF2F7; color: var(--q-text-dark); font-weight: 500;">
+                    {{ group }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: var(--q-text-muted); font-size: 0.9rem;">No groups assigned.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endif %}
+{% endblock %}
